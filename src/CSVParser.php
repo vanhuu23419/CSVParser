@@ -13,7 +13,6 @@ class CSVParser
         $len = strlen($str);
         if ($len >= 2 && ($str[$len - 2].$str[$len - 1] === CSV_EOL)) {
             return substr($str, 0, $len - 2);
-
         }
         if ($len >= 1 && ($str[$len - 1] === PHP_EOL)) {
             return substr($str, 0, $len - 1);
