@@ -1,5 +1,8 @@
 <?php
-
+/**
+ * Owner: huu.nv
+ * Parse CSV into 2D array. Properly handle enclosed multiline data.
+ */
 class CSVParser 
 {
     public function __construct()
@@ -13,9 +16,8 @@ class CSVParser
         $len = strlen($str);
         if ($len >= 2 && ($str[$len - 2].$str[$len - 1] === CSV_EOL)) {
             return substr($str, 0, $len - 2);
-
         }
-        if ($len >= 1 && ($str[$len - 1] === PHP_EOL)) {
+        if ($len >= 1 && ($str[$len - 1] === chr(10) || $str[$len - 1] === chr(13))) {
             return substr($str, 0, $len - 1);
         }
         return $str;
@@ -23,7 +25,7 @@ class CSVParser
 
     protected function isEndOfLine(string $str) {
         $len = strlen($str);
-        if ($len >= 1 && ($str[$len - 1] === PHP_EOL)) {
+        if ($len >= 1 && (($str[$len - 1] === chr(10)) || ($str[$len - 1] === chr(13)))) {
             return true;
         }
         if ($len >= 2 && ($str[$len - 2].$str[$len - 1] === CSV_EOL)) {
@@ -60,7 +62,7 @@ class CSVParser
         $result = [];
         $row = [];
         $data = '';
-        $enclosure = false;     // 'true' = Keep adding the data to current column even it contains '\r\n' or ','
+        $enclosure = false; 
         $count = 1;
 
         while(($line = fgets($handle)) !== false) {
@@ -75,7 +77,6 @@ class CSVParser
                         $i -= 1;
                         continue;
                     }
-                    
                     // Meet the end of line. Remove \r\n
                     if ($this->isEndOfLine($str)) {
                         $str = $this->removeEndOfLine($str);      
@@ -109,9 +110,13 @@ class CSVParser
             // Finished building row. Add to result
             if ($enclosure === false) {
                 if ($each != null) {
-                    $each($row, $count);
+                    $tmp = $each($row, $count);
+                    if ($tmp !== false) {
+                        array_push($result, $tmp);
+                    }
+                }else {
+                    array_push($result, $row);
                 }
-                $result[] = $row;
                 $row = [];
                 $data = '';
             }
@@ -124,7 +129,14 @@ class CSVParser
             array_push($row, '"' . str_replace('""', '"', $data));
         }
         if (!empty($row)) {
-            array_push($result, $row);
+            if ($each != null) {
+                $tmp = $each($row, $count);
+                if ($tmp !== false) {
+                    array_push($result, $tmp);
+                }
+            }else {
+                array_push($result, $row);
+            }
         }
         return $result;
     }
